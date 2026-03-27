@@ -1,0 +1,112 @@
+import sys
+from PySide6.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QLineEdit, QLabel, QListWidget, QTabWidget
+)
+from PySide6.QtCharts import QChart, QChartView, QLineSeries
+from PySide6.QtCore import Qt
+
+class GymApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Gym Utils App")
+        self.resize(600, 400)
+
+        self.data = []
+
+        # Tabs
+        self.tabs = QTabWidget()
+        
+        self.workout_tab = QWidget()
+        self.graph_tab = QWidget()
+
+        self.tabs.addTab(self.workout_tab, "Workout")
+        self.tabs.addTab(self.graph_tab, "Progress")
+
+        self.setup_workout_tab()
+        self.setup_graph_tab()
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.tabs)
+        self.setLayout(main_layout)
+
+        # Basic styling (QSS)
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                padding: 8px;
+                border-radius: 8px;
+            }
+            QLineEdit {
+                padding: 5px;
+            }
+        """)
+
+    def setup_workout_tab(self):
+        layout = QVBoxLayout()
+
+        # Inputs
+        self.exercise_input = QLineEdit()
+        self.exercise_input.setPlaceholderText("Exercise")
+
+        self.weight_input = QLineEdit()
+        self.weight_input.setPlaceholderText("Weight")
+
+        # Button
+        add_btn = QPushButton("Add Workout")
+        add_btn.clicked.connect(self.add_workout)
+
+        # List
+        self.list_widget = QListWidget()
+
+        layout.addWidget(QLabel("Add Workout"))
+        layout.addWidget(self.exercise_input)
+        layout.addWidget(self.weight_input)
+        layout.addWidget(add_btn)
+        layout.addWidget(self.list_widget)
+
+        self.workout_tab.setLayout(layout)
+
+    def setup_graph_tab(self):
+        layout = QVBoxLayout()
+
+        self.series = QLineSeries()
+        self.chart = QChart()
+        self.chart.addSeries(self.series)
+        self.chart.createDefaultAxes()
+        self.chart.setTitle("Weight Progress")
+
+        self.chart_view = QChartView(self.chart)
+        self.chart_view.setRenderHint(self.chart_view.renderHints())
+
+        layout.addWidget(self.chart_view)
+        self.graph_tab.setLayout(layout)
+
+    def add_workout(self):
+        exercise = self.exercise_input.text()
+        weight = self.weight_input.text()
+
+        if exercise and weight.isdigit():
+            weight = int(weight)
+            self.data.append(weight)
+
+            # Update list
+            self.list_widget.addItem(f"{exercise} - {weight} kg")
+
+            # Update graph
+            self.series.clear()
+            for i, w in enumerate(self.data):
+                self.series.append(i, w)
+
+            self.chart.createDefaultAxes()
+
+            # Clear inputs
+            self.exercise_input.clear()
+            self.weight_input.clear()
+
+
+app = QApplication(sys.argv)
+window = GymApp()
+window.show()
+app.exec()
