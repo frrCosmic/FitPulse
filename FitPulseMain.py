@@ -247,38 +247,154 @@ def manage_members_page():
     Button(window, text="Back", command=home_page).pack(pady=20)
 
 def add_member_page():
+
     clear_window()
 
     show_logo()
 
-    Label(window, text="Add Member",
-          font=("Arial", 20, "bold"),
-          bg="white").pack(pady=20)
+    Label(
+        window,
+        text="Add Member",
+        font=("Arial", 20, "bold"),
+        bg="white"
+    ).pack(pady=20)
+
+    # =========================
+    # NAME
+    # =========================
+
+    Label(window, text="Name", bg="white").pack()
 
     name_entry = Entry(window, font=("Arial", 14))
     name_entry.pack(pady=5)
-    name_entry.insert(0, "Name")
 
-    age_entry = Entry(window, font=("Arial", 14))
-    age_entry.pack(pady=5)
-    age_entry.insert(0, "Age")
+    # =========================
+    # AGE DROPDOWN
+    # =========================
 
-    height_entry = Entry(window, font=("Arial", 14))
-    height_entry.pack(pady=5)
-    height_entry.insert(0, "Height")
+    Label(window, text="Age", bg="white").pack()
 
-    weight_entry = Entry(window, font=("Arial", 14))
-    weight_entry.pack(pady=5)
-    weight_entry.insert(0, "Weight")
+    age_var = StringVar()
+    age_var.set("18")
 
-    goal_entry = Entry(window, font=("Arial", 14))
-    goal_entry.pack(pady=5)
-    goal_entry.insert(0, "Goal")
+    age_menu = OptionMenu(
+        window,
+        age_var,
+        *[str(i) for i in range(16, 61)]
+    )
+
+    age_menu.pack(pady=5)
+
+    # =========================
+    # HEIGHT DROPDOWN
+    # =========================
+
+    Label(window, text="Height (cm)", bg="white").pack()
+
+    height_var = StringVar()
+    height_var.set("170")
+
+    height_menu = OptionMenu(
+        window,
+        height_var,
+        *[str(i) for i in range(140, 221)]
+    )
+
+    height_menu.pack(pady=5)
+
+    # =========================
+    # WEIGHT DROPDOWN
+    # =========================
+
+    Label(window, text="Weight (kg)", bg="white").pack()
+
+    weight_var = StringVar()
+    weight_var.set("70")
+
+    weight_menu = OptionMenu(
+        window,
+        weight_var,
+        *[str(i) for i in range(40, 151)]
+    )
+
+    weight_menu.pack(pady=5)
+
+    # =========================
+    # GOAL DROPDOWN
+    # =========================
+
+    Label(window, text="Fitness Goal", bg="white").pack()
+
+    goal_var = StringVar()
+    goal_var.set("Maintain")
+
+    goal_menu = OptionMenu(
+        window,
+        goal_var,
+        "Weight Loss",
+        "Muscle Gain",
+        "Maintain"
+    )
+
+    goal_menu.pack(pady=5)
+
+    # =========================
+    # PASSWORD
+    # =========================
+
+    Label(window, text="Password", bg="white").pack()
 
     password_entry = Entry(window, font=("Arial", 14))
     password_entry.pack(pady=5)
-    password_entry.insert(0, "Password")
 
+    # =========================
+    # SAVE FUNCTION
+    # =========================
+
+    def save():
+
+        name = name_entry.get().strip()
+        password = password_entry.get().strip()
+
+        if name == "" or password == "":
+
+            messagebox.showerror(
+                "Error",
+                "Name and Password cannot be empty"
+            )
+
+            return
+
+        member_id = add_member(
+            name,
+            int(age_var.get()),
+            float(height_var.get()),
+            float(weight_var.get()),
+            goal_var.get(),
+            str(date.today()),
+            password
+        )
+
+        messagebox.showinfo(
+            "Success",
+            "Member Added Successfully\n\nMember ID: "
+            + str(member_id)
+        )
+
+    Button(
+        window,
+        text="Save Member",
+        bg="green",
+        fg="white",
+        font=("Arial", 12, "bold"),
+        command=save
+    ).pack(pady=20)
+
+    Button(
+        window,
+        text="Back",
+        command=manage_members_page
+    ).pack()
     def save():
         try:
             member_id = add_member(
