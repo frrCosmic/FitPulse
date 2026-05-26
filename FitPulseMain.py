@@ -175,7 +175,7 @@ def member_name_map():
 
 
 def home_page():
-    start_page("Welcome to Orbit Prime Gym!")
+    start_page("Welcome to Alappuzha Gymkhana!")
     button("Admin Login", admin_login_page)
     button("User Login", user_login_page)
 
