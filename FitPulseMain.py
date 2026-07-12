@@ -8,6 +8,7 @@ import FitPulseBackend as backend
 BG = "#f5f7fa"
 TEXT = "#111111"
 MUTED = "#666666"
+UI_SCALE = 1.0  # Lower this (for example, 0.85) on smaller displays.
 BUTTON_STYLE = {
     "font": ("Poppins", 12, "bold"),
     "bg": TEXT,
@@ -25,6 +26,7 @@ GOALS = ["Weight Loss", "Muscle Gain", "Maintain"]
 PLANS = ["GOLD", "PLATINUM", "DIAMOND"]
 DURATIONS = ["monthly", "yearly"]
 INTENSITIES = ["Low", "Medium", "High"]
+MEMBER_FIELDS = ("Name", "Age", "Height", "Weight", "Password")
 DEFAULT_MEMBERS = [
     [101001, "Arjun", 18, 172, 68, "Muscle Gain", "arjun123", 5000],
     [101002, "Rahul", 19, 175, 74, "Weight Loss", "rahul123", 4500],
@@ -35,8 +37,11 @@ DEFAULT_MEMBERS = [
 
 window = Tk()
 window.title("FitPulse")
-window.geometry("1000x700")
+base_tk_scaling = float(window.tk.call("tk", "scaling"))
+window.tk.call("tk", "scaling", base_tk_scaling * UI_SCALE)
+window.geometry(f"{round(1000 * UI_SCALE)}x{round(700 * UI_SCALE)}")
 window.config(bg=BG)
+page_content = None
 
 
 def create_files():
@@ -60,14 +65,23 @@ def create_files():
 
 
 def clear_window():
+    global page_content
     for widget in window.winfo_children():
         widget.destroy()
+    page_content = None
+
+
+def create_page():
+    """Create the fixed-size content area shared by every screen."""
+    global page_content
+    page_content = Frame(window, bg=BG)
+    page_content.pack(fill=BOTH, expand=True)
 
 
 def label(text, size=12, weight="normal", parent=None, **kwargs):
     pady = kwargs.pop("pady", 5)
     widget = Label(
-        parent or window,
+        parent or page_content,
         text=text,
         font=("Poppins", size, weight),
         bg=BG,
@@ -79,7 +93,7 @@ def label(text, size=12, weight="normal", parent=None, **kwargs):
 
 
 def button(text, command, pady=10):
-    Button(window, text=text, command=command, **BUTTON_STYLE).pack(pady=pady)
+    Button(page_content, text=text, command=command, **BUTTON_STYLE).pack(pady=pady)
 
 
 def small_button(parent, text, command):
@@ -101,7 +115,7 @@ def small_button(parent, text, command):
 
 def entry(title, show=None):
     label(title)
-    field = Entry(window, show=show, font=("Poppins", 12), width=30)
+    field = Entry(page_content, show=show, font=("Poppins", 12), width=30)
     field.pack(pady=5)
     return field
 
@@ -109,26 +123,47 @@ def entry(title, show=None):
 def dropdown(title, options, selected=None):
     label(title)
     variable = StringVar(value=selected or options[0])
-    menu = OptionMenu(window, variable, *options)
+    menu = OptionMenu(page_content, variable, *options)
     menu.config(font=("Poppins", 12), width=25, bg="white", fg=TEXT)
     menu.pack(pady=5)
     return variable
 
 
 def member_form(member=None):
-    fields = {name: entry(name) for name in ["Name", "Age", "Height", "Weight", "Password"]}
+    fields = {name: entry(name) for name in MEMBER_FIELDS}
     if member:
-        values = {"Name": member[1], "Age": member[2], "Height": member[3], "Weight": member[4], "Password": member[7]}
-        for name in fields:
-            fields[name].insert(0, str(values[name]))
+        for name, value in zip(MEMBER_FIELDS, (member[1], member[2], member[3], member[4], member[7])):
+            fields[name].insert(0, str(value))
     return fields, dropdown("Goal", GOALS, member[5] if member else GOALS[0])
 
 
+def member_form_values(fields, goal_var):
+    return (
+        fields["Name"].get(),
+        int(fields["Age"].get()),
+        float(fields["Height"].get()),
+        float(fields["Weight"].get()),
+        goal_var.get(),
+        fields["Password"].get(),
+    )
+
+
 def get_member_fitness(member_id):
-    for record in backend.load_fitness():
-        if record[0] == member_id:
-            return record
-    return None
+    return next((record for record in backend.load_fitness() if record[0] == member_id), None)
+
+
+def member_detail_lines(member, id_label="ID"):
+    status = "Active" if member[8] else "Inactive"
+    return [
+        f"{id_label}: {member[0]}",
+        f"Name: {member[1]}",
+        f"Age: {member[2]}",
+        f"Height: {member[3]} cm",
+        f"Weight: {member[4]} kg",
+        f"Goal: {member[5]}",
+        f"Joined: {member[6]}",
+        f"Status: {status}",
+    ]
 
 
 def show_lines(lines, size=12, pady=2):
@@ -137,7 +172,7 @@ def show_lines(lines, size=12, pady=2):
 
 
 def show_logo():
-    top = Frame(window, bg=BG)
+    top = Frame(page_content, bg=BG)
     top.pack(fill="x")
 
     if LOGO_FILE.exists():
@@ -157,6 +192,8 @@ def show_logo():
 
 def start_page(title):
     clear_window()
+    window.unbind("<MouseWheel>")
+    create_page()
     show_logo()
     label(title, 22, "bold", pady=16)
 
@@ -172,6 +209,24 @@ def add_member(name, age, height, weight, goal, password):
 
 def member_name_map():
     return {member[0]: member[1] for member in backend.load_members()}
+
+
+def member_lookup_page(title, action_text, on_member):
+    start_page(title)
+    id_field = entry("Member ID")
+
+    def submit():
+        try:
+            member = backend.search_member_by_id(int(id_field.get()))
+            if member:
+                on_member(member)
+            else:
+                messagebox.showerror("Error", "Member Not Found")
+        except:
+            messagebox.showerror("Error", "Invalid ID")
+
+    button(action_text, submit, pady=20)
+    button("Back", manage_members_page, pady=0)
 
 
 def home_page():
@@ -270,7 +325,7 @@ def manage_members_page():
     menu_page(
         "Manage Members",
         [
-            ("Add Member", add_member_page),
+            ("Add Member", member_editor_page),
             ("Delete Member", delete_member_page),
             ("Edit Member", edit_member_lookup_page),
             ("Search Member", search_member_page),
@@ -279,98 +334,86 @@ def manage_members_page():
     )
 
 
-def add_member_page():
-    start_page("Add Member")
-    fields, goal_var = member_form()
-
-    def save():
-        try:
-            member_id = add_member(
-                fields["Name"].get(),
-                int(fields["Age"].get()),
-                float(fields["Height"].get()),
-                float(fields["Weight"].get()),
-                goal_var.get(),
-                fields["Password"].get(),
-            )
-            messagebox.showinfo("Success", "Member Added\nID : " + str(member_id))
-        except:
-            messagebox.showerror("Error", "Invalid Details")
-
-    button("Save Member", save, pady=20)
-    button("Back", manage_members_page, pady=0)
-
-
 def delete_member_page():
-    start_page("Delete Member")
-    id_field = entry("Member ID")
+    def remove(member):
+        if not messagebox.askyesno(
+            "Confirm Deletion",
+            f"Delete {member[1]} ({member[0]})?\nThis cannot be undone.",
+        ):
+            return
+        if backend.delete_member(member[0], "Deleted from admin UI"):
+            messagebox.showinfo("Success", "Member Deleted")
+        else:
+            messagebox.showerror("Error", "Member Not Found")
 
-    def remove():
-        try:
-            deleted = backend.delete_member(int(id_field.get()), "Deleted from admin UI")
-            if deleted:
-                messagebox.showinfo("Success", "Member Deleted")
-            else:
-                messagebox.showerror("Error", "Member Not Found")
-        except:
-            messagebox.showerror("Error", "Invalid ID")
-
-    button("Delete", remove, pady=20)
-    button("Back", manage_members_page, pady=0)
+    member_lookup_page("Delete Member", "Delete", remove)
 
 
 def edit_member_lookup_page():
-    start_page("Edit Member")
-    id_field = entry("Member ID")
-
-    def open_editor():
-        try:
-            member = backend.search_member_by_id(int(id_field.get()))
-            if member:
-                edit_member_page(member)
-            else:
-                messagebox.showerror("Error", "Member Not Found")
-        except:
-            messagebox.showerror("Error", "Invalid ID")
-
-    button("Edit", open_editor, pady=20)
-    button("Back", manage_members_page, pady=0)
+    member_lookup_page("Edit Member", "Edit", member_editor_page)
 
 
-def edit_member_page(member):
-    start_page("Edit Member")
+def member_editor_page(member=None):
+    is_editing = member is not None
+    start_page("Edit Member" if is_editing else "Add Member")
     fields, goal_var = member_form(member)
 
     def save():
         try:
-            backend.modify_member(
-                member[0],
-                name=fields["Name"].get(),
-                age=int(fields["Age"].get()),
-                height=float(fields["Height"].get()),
-                weight=float(fields["Weight"].get()),
-                goal=goal_var.get(),
-                password=fields["Password"].get(),
-            )
-            backend.update_workout_plan(member[0], goal_var.get(), "Medium", 3)
-            messagebox.showinfo("Success", "Member Updated")
-            manage_members_page()
+            name, age, height, weight, goal, password = member_form_values(fields, goal_var)
+            if is_editing:
+                backend.modify_member(member[0], name, age, height, weight, goal, password)
+                backend.update_workout_plan(member[0], goal, "Medium", 3)
+                messagebox.showinfo("Success", "Member Updated")
+                manage_members_page()
+            else:
+                member_id = add_member(name, age, height, weight, goal, password)
+                messagebox.showinfo("Success", "Member Added\nID : " + str(member_id))
         except:
             messagebox.showerror("Error", "Invalid Details")
 
-    button("Save Changes", save, pady=20)
+    button("Save Changes" if is_editing else "Save Member", save, pady=20)
     button("Back", manage_members_page, pady=0)
 
 
 def search_member_page():
     start_page("Search Member")
     search_field = entry("Enter Member ID or Name")
-    result_box = Frame(window, bg=BG, width=620, height=260)
-    result_box.pack_propagate(False)
+    label("Press Enter to search", 10, fg=MUTED, pady=(0, 6))
+
+    result_box = Frame(page_content, bg=BG)
     result_box.pack(pady=12)
+    results_canvas = Canvas(
+        result_box,
+        bg=BG,
+        width=round(620 * UI_SCALE),
+        height=round(200 * UI_SCALE),
+        highlightthickness=0,
+    )
+    results_scrollbar = Scrollbar(result_box, orient=VERTICAL, command=results_canvas.yview)
+    results_canvas.configure(yscrollcommand=results_scrollbar.set)
+    results_scrollbar.pack(side=RIGHT, fill=Y)
+    results_canvas.pack(side=LEFT, fill=BOTH, expand=True)
+
+    results_frame = Frame(results_canvas, bg=BG)
+    results_window = results_canvas.create_window((0, 0), window=results_frame, anchor="nw")
+    results_frame.bind(
+        "<Configure>",
+        lambda event: results_canvas.configure(scrollregion=results_canvas.bbox("all")),
+    )
+    results_canvas.bind(
+        "<Configure>",
+        lambda event: results_canvas.itemconfigure(results_window, width=event.width),
+    )
+
+    def scroll_results(event):
+        results_canvas.yview_scroll(int(-event.delta / 120), "units")
+        return "break"
+
+    window.bind("<MouseWheel>", scroll_results)
 
     def show_result_row(member):
-        row = Frame(result_box, bg="white", highlightbackground="#d6dbe3", highlightthickness=1)
+        row = Frame(results_frame, bg="white", highlightbackground="#d6dbe3", highlightthickness=1)
         row.pack(fill="x", padx=16, pady=4)
 
         Label(
@@ -384,54 +427,40 @@ def search_member_page():
         ).pack(side=LEFT, padx=12, pady=8)
 
         small_button(row, "View", lambda member=member: view_member_page(member))
-        small_button(row, "Edit", lambda member=member: edit_member_page(member))
+        small_button(row, "Edit", lambda member=member: member_editor_page(member))
 
-    def search():
-        for widget in result_box.winfo_children():
+    def show_matches(event=None):
+        for widget in results_frame.winfo_children():
             widget.destroy()
 
         query = search_field.get().strip().lower()
-        if not query:
-            label("Enter a member ID or name", 12, parent=result_box)
-            return
-
-        matches = []
-        for member in backend.load_members():
-            if query == str(member[0]) or query in member[1].lower():
-                matches.append(member)
+        matches = [
+            member
+            for member in backend.load_members()
+            if not query or query in str(member[0]) or query in member[1].lower()
+        ]
 
         if not matches:
-            label("No matching member found", 12, parent=result_box)
+            label("No matching member found", 12, parent=results_frame)
         else:
-            for member in matches[:6]:
+            for member in matches:
                 show_result_row(member)
-            if len(matches) > 6:
-                label(f"Showing 6 of {len(matches)} matches. Type more to narrow it down.", 10, parent=result_box, fg=MUTED, pady=4)
 
-    button("Search", search, pady=16)
-    button("Back", manage_members_page, pady=0)
+    search_field.bind("<Return>", show_matches)
+    show_matches()
+    button("Back", manage_members_page, pady=16)
 
 
 def view_member_page(member):
     start_page("Member Details")
-    status = "Active" if member[8] else "Inactive"
     membership = backend.get_membership_info(member[0])
-    details = [
-        f"ID: {member[0]}",
-        f"Name: {member[1]}",
-        f"Age: {member[2]}",
-        f"Height: {member[3]} cm",
-        f"Weight: {member[4]} kg",
-        f"Goal: {member[5]}",
-        f"Joined: {member[6]}",
-        f"Status: {status}",
-    ]
+    details = member_detail_lines(member)
     if membership:
         details.append(
             f"Membership: {membership[1]} {membership[2]}, Rs. {membership[3]}, paid {membership[4]}"
         )
     show_lines(details)
-    button("Edit", lambda: edit_member_page(member), pady=14)
+    button("Edit", lambda: member_editor_page(member), pady=14)
     button("Back", search_member_page, pady=0)
 
 
@@ -461,18 +490,9 @@ def bmi_suggestion(category):
 def user_profile_page(member):
     member = backend.search_member_by_id(member[0]) or member
     bmi, category = backend.calculate_bmi(member[4], member[3])
-    status = "Active" if member[8] else "Inactive"
 
     start_page("Profile")
-    details = [
-        f"Member ID: {member[0]}",
-        f"Name: {member[1]}",
-        f"Age: {member[2]}",
-        f"Height: {member[3]} cm",
-        f"Weight: {member[4]} kg",
-        f"Goal: {member[5]}",
-        f"Joined: {member[6]}",
-        f"Status: {status}",
+    details = member_detail_lines(member, "Member ID") + [
         f"BMI: {bmi} ({category})",
         "BMI Analysis: " + bmi_suggestion(category),
     ]
