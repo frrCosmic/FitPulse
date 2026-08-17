@@ -2,7 +2,6 @@ from datetime import date
 from pathlib import Path
 from tkinter import *
 from tkinter import messagebox
-
 import FitPulseBackend as backend
 
 BG = "#f5f7fa"
@@ -20,9 +19,11 @@ BUTTON_STYLE = {
     "bd": 0,
     "cursor": "hand2",
 }
+ACTION_BUTTON_STYLE = {**BUTTON_STYLE, "width": 14, "height": 1}
 
 LOGO_FILE = Path(__file__).resolve().parent / "assets" / "fitpulse_logo.png"
 GOALS = ["Weight Loss", "Muscle Gain", "Maintain"]
+GENDERS = ["Male", "Female"]
 PLANS = ["GOLD", "PLATINUM", "DIAMOND"]
 DURATIONS = ["monthly", "yearly"]
 INTENSITIES = ["Low", "Medium", "High"]
@@ -35,13 +36,18 @@ DEFAULT_MEMBERS = [
     [101005, "Vishnu", 21, 170, 72, "Maintain", "vishnu123", 4800],
 ]
 
-window = Tk()
-window.title("FitPulse")
-base_tk_scaling = float(window.tk.call("tk", "scaling"))
-window.tk.call("tk", "scaling", base_tk_scaling * UI_SCALE)
-window.geometry(f"{round(1000 * UI_SCALE)}x{round(700 * UI_SCALE)}")
-window.config(bg=BG)
+window = None
 page_content = None
+
+
+def initialize_window():
+    global window
+    window = Tk()
+    window.title("FitPulse")
+    base_tk_scaling = float(window.tk.call("tk", "scaling"))
+    window.tk.call("tk", "scaling", base_tk_scaling * UI_SCALE)
+    window.geometry(f"{round(1000 * UI_SCALE)}x{round(700 * UI_SCALE)}")
+    window.config(bg=BG)
 
 
 def create_files():
@@ -53,7 +59,7 @@ def create_files():
 
     join_date = date.today().isoformat()
     members = [
-        [mid, name, age, height, weight, goal, join_date, password, True]
+        [mid, name, age, height, weight, goal, join_date, password, True, GENDERS[0]]
         for mid, name, age, height, weight, goal, password, fee in DEFAULT_MEMBERS
     ]
     memberships = [
@@ -96,6 +102,16 @@ def button(text, command, pady=10):
     Button(page_content, text=text, command=command, **BUTTON_STYLE).pack(pady=pady)
 
 
+def action_row(*actions, pady=14):
+    """Place related actions beside each other and keep the group centered."""
+    row = Frame(page_content, bg=BG)
+    row.pack(pady=pady)
+    for text, command in actions:
+        Button(row, text=text, command=command, **ACTION_BUTTON_STYLE).pack(
+            side=LEFT, padx=6
+        )
+
+
 def small_button(parent, text, command):
     Button(
         parent,
@@ -129,15 +145,26 @@ def dropdown(title, options, selected=None):
     return variable
 
 
+def member_gender(member):
+    """Return a valid gender for both migrated and current member records."""
+    gender = member[9] if len(member) > 9 else GENDERS[0]
+    return gender if gender in GENDERS else GENDERS[0]
+
+
 def member_form(member=None):
     fields = {name: entry(name) for name in MEMBER_FIELDS}
     if member:
         for name, value in zip(MEMBER_FIELDS, (member[1], member[2], member[3], member[4], member[7])):
             fields[name].insert(0, str(value))
-    return fields, dropdown("Goal", GOALS, member[5] if member else GOALS[0])
+    gender = member_gender(member) if member else GENDERS[0]
+    return (
+        fields,
+        dropdown("Goal", GOALS, member[5] if member else GOALS[0]),
+        dropdown("Gender", GENDERS, gender),
+    )
 
 
-def member_form_values(fields, goal_var):
+def member_form_values(fields, goal_var, gender_var):
     return (
         fields["Name"].get(),
         int(fields["Age"].get()),
@@ -145,6 +172,7 @@ def member_form_values(fields, goal_var):
         float(fields["Weight"].get()),
         goal_var.get(),
         fields["Password"].get(),
+        gender_var.get(),
     )
 
 
@@ -161,6 +189,7 @@ def member_detail_lines(member, id_label="ID"):
         f"Height: {member[3]} cm",
         f"Weight: {member[4]} kg",
         f"Goal: {member[5]}",
+        f"Gender: {member_gender(member)}",
         f"Joined: {member[6]}",
         f"Status: {status}",
     ]
@@ -198,9 +227,9 @@ def start_page(title):
     label(title, 22, "bold", pady=16)
 
 
-def add_member(name, age, height, weight, goal, password):
+def add_member(name, age, height, weight, goal, password, gender):
     member_id = backend.add_member(
-        name, age, height, weight, goal, date.today().isoformat(), password
+        name, age, height, weight, goal, date.today().isoformat(), password, gender
     )
     backend.update_membership(member_id, "Gold", "monthly")
     backend.update_workout_plan(member_id, goal, "Medium", 3)
@@ -209,6 +238,16 @@ def add_member(name, age, height, weight, goal, password):
 
 def member_name_map():
     return {member[0]: member[1] for member in backend.load_members()}
+
+
+def records_page(title, records, empty_text, formatter, back=None):
+    start_page(title)
+    if not records:
+        label(empty_text, 14)
+    else:
+        for record in records:
+            label(formatter(record), 13, pady=3)
+    button("Back", back or admin_dashboard, pady=20)
 
 
 def member_lookup_page(title, action_text, on_member):
@@ -222,11 +261,10 @@ def member_lookup_page(title, action_text, on_member):
                 on_member(member)
             else:
                 messagebox.showerror("Error", "Member Not Found")
-        except:
+        except (ValueError, TypeError):
             messagebox.showerror("Error", "Invalid ID")
 
-    button(action_text, submit, pady=20)
-    button("Back", manage_members_page, pady=0)
+    action_row((action_text, submit), ("Back", manage_members_page))
 
 
 def home_page():
@@ -247,7 +285,7 @@ def login_page(title, id_title, login_func, success_func):
                 success_func(user)
             else:
                 messagebox.showerror("Error", "Wrong ID or Password")
-        except:
+        except (ValueError, TypeError, IndexError):
             messagebox.showerror("Error", "Invalid Details")
 
     button("Login", login, pady=20)
@@ -276,6 +314,7 @@ def admin_dashboard():
         [
             ("Membership Fees", membership_page),
             ("Attendance Logs", attendance_page),
+            ("Deletion Logs", deletion_logs_page),
             ("Manage Members", manage_members_page),
             ("Logout", home_page),
         ],
@@ -306,19 +345,27 @@ def membership_page():
 
 
 def attendance_page():
-    start_page("Attendance Logs")
     logs = backend.get_attendance_logs()
+    names = member_name_map()
+    records_page(
+        "Attendance Logs",
+        logs,
+        "No Attendance Logs",
+        lambda record: (
+            f"{names.get(record[0], 'Unknown')} ({record[0]}) - {record[1]} - "
+            f"{record[2]} - Streak {record[3] if len(record) > 3 else 1}"
+        ),
+    )
 
-    if not logs:
-        label("No Attendance Logs", 14)
-    else:
-        names = member_name_map()
-        for record in logs:
-            member_id, log_date, log_time = record[:3]
-            streak = record[3] if len(record) > 3 else 1
-            label(f"{names.get(member_id, 'Unknown')} ({member_id}) - {log_date} - {log_time} - Streak {streak}", 13)
 
-    button("Back", admin_dashboard, pady=20)
+def deletion_logs_page():
+    logs = backend.get_deletion_logs()
+    records_page(
+        "Deletion Logs",
+        reversed(logs),
+        "No Deletion Logs",
+        lambda record: f"{record[1]} ({record[0]}) - {record[3]} - {record[2]}",
+    )
 
 
 def manage_members_page():
@@ -356,24 +403,30 @@ def edit_member_lookup_page():
 def member_editor_page(member=None):
     is_editing = member is not None
     start_page("Edit Member" if is_editing else "Add Member")
-    fields, goal_var = member_form(member)
+    fields, goal_var, gender_var = member_form(member)
 
     def save():
         try:
-            name, age, height, weight, goal, password = member_form_values(fields, goal_var)
+            name, age, height, weight, goal, password, gender = member_form_values(
+                fields, goal_var, gender_var
+            )
             if is_editing:
-                backend.modify_member(member[0], name, age, height, weight, goal, password)
+                backend.modify_member(
+                    member[0], name, age, height, weight, goal, password, gender
+                )
                 backend.update_workout_plan(member[0], goal, "Medium", 3)
                 messagebox.showinfo("Success", "Member Updated")
                 manage_members_page()
             else:
-                member_id = add_member(name, age, height, weight, goal, password)
+                member_id = add_member(name, age, height, weight, goal, password, gender)
                 messagebox.showinfo("Success", "Member Added\nID : " + str(member_id))
-        except:
+        except (ValueError, TypeError, KeyError):
             messagebox.showerror("Error", "Invalid Details")
 
-    button("Save Changes" if is_editing else "Save Member", save, pady=20)
-    button("Back", manage_members_page, pady=0)
+    action_row(
+        ("Save Changes" if is_editing else "Save Member", save),
+        ("Back", manage_members_page),
+    )
 
 
 def search_member_page():
@@ -518,11 +571,10 @@ def update_body_stats_page(member):
             )
             messagebox.showinfo("Saved", f"BMI: {bmi} ({category})")
             user_profile_page(backend.search_member_by_id(member[0]) or member)
-        except:
+        except (ValueError, TypeError):
             messagebox.showerror("Error", "Invalid height or weight")
 
-    button("Save", save, pady=20)
-    button("Back", lambda: user_profile_page(member), pady=0)
+    action_row(("Save", save), ("Back", lambda: user_profile_page(member)))
 
 
 def user_membership_page(member):
@@ -536,7 +588,7 @@ def user_membership_page(member):
         today = date.today()
         try:
             days_left = (date.fromisoformat(expiry) - today).days
-        except:
+        except (ValueError, TypeError):
             days_left = 0
         show_lines([
             f"Plan: {plan}",
@@ -566,11 +618,10 @@ def change_membership_page(member):
             backend.update_membership(member[0], plan_var.get(), duration_var.get())
             messagebox.showinfo("Success", "Membership Updated")
             user_membership_page(member)
-        except:
+        except (ValueError, TypeError, KeyError):
             messagebox.showerror("Error", "Invalid Plan")
 
-    button("Save Plan", save, pady=20)
-    button("Back", lambda: user_membership_page(member), pady=0)
+    action_row(("Save Plan", save), ("Back", lambda: user_membership_page(member)))
 
 
 def user_workout_page(member):
@@ -592,7 +643,7 @@ def user_workout_page(member):
         ], pady=3)
 
         label("Diet Plan", 16, "bold", pady=10)
-        for item in backend.get_diet_plan(member[5]):
+        for item in backend.get_diet_plan(member[5], member_gender(member)):
             label("- " + item, 12, pady=2)
 
     button("Change Workout", lambda: change_workout_page(member), pady=14)
@@ -614,13 +665,18 @@ def change_workout_page(member):
             messagebox.showinfo("Success", "Workout Updated")
             updated_member = backend.search_member_by_id(member[0]) or member
             user_workout_page(updated_member)
-        except:
+        except (ValueError, TypeError, KeyError):
             messagebox.showerror("Error", "Invalid Workout Details")
 
-    button("Save Workout", save, pady=20)
-    button("Back", lambda: user_workout_page(member), pady=0)
+    action_row(("Save Workout", save), ("Back", lambda: user_workout_page(member)))
 
 
-create_files()
-home_page()
-window.mainloop()
+def main():
+    initialize_window()
+    create_files()
+    home_page()
+    window.mainloop()
+
+
+if __name__ == "__main__":
+    main()
