@@ -2,6 +2,9 @@ import pickle
 import random as r
 from datetime import date, datetime, timedelta
 
+
+DEFAULT_GENDER = "Male"
+
 PLAN_FEES = {
     "GOLD_MONTHLY": 999,
     "GOLD_YEARLY": 9999,
@@ -49,16 +52,24 @@ def admin_login(admin_id, password):
     return None
 
 
-# Member records: id, name, age, height, weight, goal, join_date, password, status
+# Member records: id, name, age, height, weight, goal, join_date, password, status, gender
 def load_members():
-    return load_data("members.dat")
+    members = load_data("members.dat")
+    migrated = False
+    for member in members:
+        if len(member) < 10:
+            member.append(DEFAULT_GENDER)
+            migrated = True
+    if migrated:
+        save_members(members)
+    return members
 
 
 def save_members(members):
     save_data("members.dat", members)
 
 
-def add_member(name, age, height, weight, goal, join_date, password):
+def add_member(name, age, height, weight, goal, join_date, password, gender=DEFAULT_GENDER):
     members = load_members()
     while True:
         member_id = r.randint(100000, 999999)
@@ -70,12 +81,21 @@ def add_member(name, age, height, weight, goal, join_date, password):
         if not exists:
             break
 
-    members.append([member_id, name, age, height, weight, goal, join_date, password, True])
+    members.append([member_id, name, age, height, weight, goal, join_date, password, True, gender])
     save_members(members)
     return member_id
 
 
-def modify_member(member_id, name=None, age=None, height=None, weight=None, goal=None, password=None):
+def modify_member(
+    member_id,
+    name=None,
+    age=None,
+    height=None,
+    weight=None,
+    goal=None,
+    password=None,
+    gender=None,
+):
     members = load_members()
     for member in members:
         if member[0] == member_id:
@@ -91,6 +111,11 @@ def modify_member(member_id, name=None, age=None, height=None, weight=None, goal
                 member[5] = goal
             if password is not None:
                 member[7] = password
+            if gender is not None:
+                if len(member) < 10:
+                    member.append(gender)
+                else:
+                    member[9] = gender
             save_members(members)
             return True
     return False
@@ -98,19 +123,21 @@ def modify_member(member_id, name=None, age=None, height=None, weight=None, goal
 
 def delete_member(member_id, reason=None):
     members = load_members()
-    new_members = []
-    found = False
+    for index, member in enumerate(members):
+        if member[0] != member_id:
+            continue
 
-    for member in members:
-        if member[0] == member_id:
-            found = True
-        else:
-            new_members.append(member)
-
-    if not found:
-        return False
-    save_members(new_members)
-    return True
+        deletion_logs = load_deletion_logs()
+        deletion_logs.append([
+            member[0],
+            member[1],
+            reason or "Deleted",
+            datetime.now().isoformat(timespec="seconds"),])
+        save_deletion_logs(deletion_logs)
+        members.pop(index)
+        save_members(members)
+        return True
+    return False
 
 
 def search_member_by_id(member_id):
@@ -230,6 +257,18 @@ def get_attendance_logs():
     return load_attendance()
 
 
+def load_deletion_logs():
+    return load_data("deletion_logs.dat")
+
+
+def save_deletion_logs(logs):
+    save_data("deletion_logs.dat", logs)
+
+
+def get_deletion_logs():
+    return load_deletion_logs()
+
+
 def calculate_bmi(weight, height_cm):
     height_m = height_cm / 100
     bmi = round(weight / (height_m * height_m), 2)
@@ -270,13 +309,48 @@ def save_fitness(fitness):
     save_data("fitness.dat", fitness)
 
 
-def get_diet_plan(goal):
-    if goal == "Weight Loss":
-        return ["Low carb meals", "Calorie deficit", "More fruits and vegetables", "Avoid sugary drinks"]
-    elif goal == "Muscle Gain":
-        return ["High protein meals", "Calorie surplus", "Eggs, paneer, chicken or dal", "Banana, peanut butter and milk"]
-    else:
-        return ["Balanced Diet", "Eat Vegetables", "Stay Hydrated", "Avoid Excess Sugar"]
+DIET_PLANS = {
+    ("Male", "Weight Loss"): [
+        "Choose lean proteins and plenty of vegetables",
+        "Prefer whole grains and smaller portions",
+        "Choose fruit or unsweetened snacks",
+        "Limit fried foods and sugary drinks",
+    ],
+    ("Male", "Muscle Gain"): [
+        "Include protein-rich foods in each meal",
+        "Choose rice, oats, potatoes, or whole grains",
+        "Include eggs, paneer, chicken, fish, or dal",
+        "Add milk, fruit, or nuts as practical snacks",
+    ],
+    ("Male", "Maintain"): [
+        "Build meals around vegetables and lean proteins",
+        "Choose balanced portions of whole grains",
+        "Drink water regularly through the day",
+        "Limit highly processed foods and excess sugar",
+    ],
+    ("Female", "Weight Loss"): [
+        "Choose lean proteins and plenty of vegetables",
+        "Prefer whole grains and satisfying portions",
+        "Choose fruit, yogurt, or unsweetened snacks",
+        "Limit fried foods and sugary drinks",
+    ],
+    ("Female", "Muscle Gain"): [
+        "Include protein-rich foods in each meal",
+        "Choose oats, rice, potatoes, or whole grains",
+        "Include eggs, paneer, chicken, fish, or dal",
+        "Add milk, fruit, nuts, or yogurt as snacks",
+    ],
+    ("Female", "Maintain"): [
+        "Build meals around vegetables and lean proteins",
+        "Choose balanced portions of whole grains",
+        "Drink water regularly through the day",
+        "Limit highly processed foods and excess sugar",
+    ],
+}
+
+
+def get_diet_plan(goal, gender=DEFAULT_GENDER):
+    return DIET_PLANS.get((gender, goal), DIET_PLANS[(DEFAULT_GENDER, goal)])
 
 
 def get_fitness_logic(goal):
