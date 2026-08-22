@@ -66,7 +66,6 @@ def clear_window():
         widget.destroy()
     page_content = None
 def create_page():
-    """Create the fixed-size content area shared by every screen."""
     global page_content
     page_content = Frame(window, bg=BG)
     page_content.pack(fill=BOTH, expand=True)
@@ -79,17 +78,12 @@ def label(text, size=12, weight="normal", parent=None, **kwargs):
 def button(text, command, pady=10):
     Button(page_content, text=text, command=command, **BUTTON_STYLE).pack(pady=pady)
 def save_action(action, refresh, error_msg="Invalid Details"):
-    """Run `action` (which performs the backend write and returns a success
-    message), show the result, then call `refresh`. Shared by every save
-    handler so each page only needs to define what it's saving."""
     try:
         messagebox.showinfo("Success", action())
         refresh()
     except (ValueError, TypeError, KeyError):
         messagebox.showerror("Error", error_msg)
 def save_row(text, action, refresh, back, error_msg="Invalid Details"):
-    """The recurring 'Save' + 'Back' pair, where Save runs `action` through
-    save_action(). Shared by every editor/change page."""
     action_row((text, lambda: save_action(action, refresh, error_msg)), ("Back", back))
 def action_row(*actions, pady=14):
     """Place related actions beside each other and keep the group centered."""
@@ -121,7 +115,6 @@ def form_entries(fields, values=None):
         entries[name].insert(0, str(value))
     return entries
 def member_gender(member):
-    """Return a valid gender for a member record."""
     gender = member[9] if len(member) > 9 else GENDERS[0]
     return gender if gender in GENDERS else GENDERS[0]
 def member_form(member=None):
@@ -146,8 +139,6 @@ def show_lines(lines, size=12, pady=2):
     for item in lines:
         label(item, size, pady=pady)
 def detail_page(title, lines_func, action_text, action_func, back_func, empty_text=None):
-    """Fetch/build display lines, show one action button + Back. Shared by
-    every 'view a record' page. lines_func returning None shows empty_text."""
     start_page(title)
     lines = lines_func()
     if lines is None:
@@ -193,9 +184,6 @@ def records_page(title, records, empty_text, formatter, back=None, header=None):
     button("Back", back or admin_dashboard, pady=20)
 def lookup_action(get_record, on_found, not_found_msg="Not Found", error_msg="Invalid ID",
                    exceptions=(ValueError, TypeError)):
-    """Fetch a record and hand it to on_found, or show the right error.
-    Shared by login and by ID lookup, which differ only in what they
-    fetch and which exceptions count as bad input."""
     try:
         record = get_record()
         if record:
@@ -205,8 +193,6 @@ def lookup_action(get_record, on_found, not_found_msg="Not Found", error_msg="In
     except exceptions:
         messagebox.showerror("Error", error_msg)
 def entity_lookup_page(title, id_label, action_text, search_func, on_found, not_found_msg, back):
-    """Shared by member and admin ID lookup, which differ only in what
-    they search for and where "Back" returns to."""
     start_page(title)
     id_field = entry(id_label)
     def submit():
@@ -299,8 +285,6 @@ def manage_members_page():
     )
 def entity_delete_page(title, id_label, search_func, delete_func, label_func,
                         default_reason, back, record=None):
-    """Shared by member and admin deletion. Accepts either a pre-picked
-    record (delete button next to a search result) or an ID to look up."""
     start_page(title)
     entity = title.split()[-1]
     id_field = None if record else entry(id_label)
@@ -371,8 +355,6 @@ def admin_editor_page(admin=None):
 def edit_admin_lookup_page():
     admin_lookup_page("Edit Admin", "Edit", admin_editor_page)
 def result_row(parent, title_text, actions):
-    """One styled result row: bold title + small action buttons. Shared by
-    every search page so results look identical regardless of entity type."""
     row = Frame(parent, bg="white", highlightbackground="#d6dbe3", highlightthickness=1)
     row.pack(fill="x", padx=16, pady=4)
     Label(row, text=title_text, font=("Poppins", 12, "bold"), bg="white", fg=TEXT,
@@ -413,8 +395,6 @@ def member_editor_page(member=None):
     editor_page("Edit Member" if is_editing else "Add Member", build_fields, save,
                 "Save Changes" if is_editing else "Save Member", manage_members_page)
 def search_list_page(title, placeholder, empty_text, load_func, matches_query, row_builder, back):
-    """Shared scrollable ID/name search, used for both members and admins.
-    row_builder(parent_frame, item) draws one result row."""
     start_page(title)
     search_field = entry(placeholder)
     label("Press Enter to search", 10, fg=MUTED, pady=(0, 6))
