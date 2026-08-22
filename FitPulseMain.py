@@ -155,7 +155,7 @@ def show_logo():
         Label(top, image=window.logo_image, bg=BG).pack(pady=(12, 0))
     else:
         Label(top, text="FitPulse", font=("Poppins", 34, "bold"), bg=BG, fg=TEXT).pack(pady=(12, 0))
-    Label(top, text="An All in One Gym Management and Fitness App.",
+    Label(top, text="Gains, Tracked.",
           font=("Poppins", 12), bg=BG, fg=MUTED).pack(pady=(0, 10))
 def start_page(title):
     clear_window()
