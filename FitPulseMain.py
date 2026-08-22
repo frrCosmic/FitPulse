@@ -271,7 +271,7 @@ def attendance_page():
         lambda r: f"{names.get(r[0], 'Unknown')} ({r[0]}) - {r[1]} - {r[2]} - Streak {r[3] if len(r) > 3 else 1}")
 def deletion_logs_page():
     records_page("Deletion Logs", reversed(backend.load_data("deletion_logs.dat")), "No Deletion Logs",
-        lambda r: f"{r[4] if len(r) > 4 else 'Member'}: {r[1]} ({r[0]}) - {r[3]} - {r[2]}")
+        lambda r: f"{r[4] if len(r) > 4 else 'Member'}: {r[1]} ({r[0]}) - {r[3].replace('T', ' ', 1)} - {r[2]}")
 def manage_members_page():
     menu_page(
         "Manage Members",
