@@ -6,18 +6,11 @@ import FitPulseBackend as backend
 BG = "#ffffff"
 TEXT = "#111111"
 MUTED = "#666666"
-UI_SCALE = 1.0  # Lower this (for example, 0.85) on smaller displays.
-BUTTON_STYLE = {
-    "font": ("Poppins", 12, "bold"),
-    "bg": TEXT,
-    "fg": "white",
-    "activebackground": "#333333",
-    "activeforeground": "white",
-    "width": 25,
-    "height": 2,
-    "bd": 0,
-    "cursor": "hand2",
-}
+UI_SCALE = 1.0  #lower to 0.85 for smaller displays
+BUTTON_STYLE = {"font": ("Poppins", 12, "bold"), "bg": TEXT,
+                "fg": "white", "activebackground": "#333333",
+                "activeforeground": "white", "width": 25,
+                "height": 2, "bd": 0, "cursor": "hand2"}
 ACTION_BUTTON_STYLE = {**BUTTON_STYLE, "width": 14, "height": 1}
 LOGO_FILE = Path(__file__).resolve().parent / "assets" / "fitpulse_logo.png"
 GOALS = ["Weight Loss", "Muscle Gain", "Maintain"]
@@ -26,16 +19,15 @@ PLANS = ["GOLD", "PLATINUM", "DIAMOND"]
 DURATIONS = ["monthly", "yearly"]
 INTENSITIES = ["Low", "Medium", "High"]
 MEMBER_FIELDS = ("Name", "Age", "Height", "Weight", "Password")
-DEFAULT_MEMBERS = [
-    [101001, "Arjun", 18, 172, 68, "Muscle Gain", "arjun123", 5000],
+DEFAULT_MEMBERS = [[101001, "Arjun", 18, 172, 68, "Muscle Gain", "arjun123", 5000],
     [101002, "Rahul", 19, 175, 74, "Weight Loss", "rahul123", 4500],
     [101003, "Neeraj", 20, 168, 65, "Maintain", "neeraj123", 4000],
     [101004, "Aditya", 18, 180, 78, "Muscle Gain", "aditya123", 5500],
-    [101005, "Vishnu", 21, 170, 72, "Maintain", "vishnu123", 4800],
-]
+    [101005, "Vishnu", 21, 170, 72, "Maintain", "vishnu123", 4800],]
 window = None
 page_content = None
 current_admin = None
+
 def initialize_window():
     global window
     window = Tk()
@@ -44,39 +36,41 @@ def initialize_window():
     window.tk.call("tk", "scaling", base_tk_scaling * UI_SCALE)
     window.geometry(f"{round(1000 * UI_SCALE)}x{round(700 * UI_SCALE)}")
     window.config(bg=BG)
+
 def create_files():
     if not backend.load_data("admins.dat"):
         backend.save_data("admins.dat", [[1001, "Admin", "Owner", "admin123"]])
     if backend.load_data("members.dat"):
         return
     join_date = date.today().isoformat()
-    members = [
-        [mid, name, age, height, weight, goal, join_date, password, True, GENDERS[0]]
-        for mid, name, age, height, weight, goal, password, fee in DEFAULT_MEMBERS
-    ]
-    memberships = [
-        [mid, "GOLD", "monthly", fee, join_date, join_date, 0, "", ""]
-        for mid, name, age, height, weight, goal, password, fee in DEFAULT_MEMBERS
-    ]
+    members = [[mid, name, age, height, weight, goal, join_date, password, True, GENDERS[0]]
+        for mid, name, age, height, weight, goal, password, fee in DEFAULT_MEMBERS]
+    memberships = [[mid, "GOLD", "monthly", fee, join_date, join_date, 0, "", ""]
+        for mid, name, age, height, weight, goal, password, fee in DEFAULT_MEMBERS]
     backend.save_data("members.dat", members)
     backend.save_data("membership.dat", memberships)
+
 def clear_window():
     global page_content
     for widget in window.winfo_children():
         widget.destroy()
     page_content = None
+
 def create_page():
     global page_content
     page_content = Frame(window, bg=BG)
     page_content.pack(fill=BOTH, expand=True)
+
 def label(text, size=12, weight="normal", parent=None, **kwargs):
     pady = kwargs.pop("pady", 5)
     widget = Label(parent or page_content, text=text, font=("Poppins", size, weight),
                    bg=BG, fg=kwargs.pop("fg", TEXT), **kwargs)
     widget.pack(pady=pady)
     return widget
+
 def button(text, command, pady=10):
     Button(page_content, text=text, command=command, **BUTTON_STYLE).pack(pady=pady)
+
 def save_action(action, refresh, error_msg="Invalid Details"):
     try:
         result = action()
@@ -86,8 +80,10 @@ def save_action(action, refresh, error_msg="Invalid Details"):
         refresh()
     except (ValueError, TypeError, KeyError):
         messagebox.showerror("Error", error_msg)
+
 def save_row(text, action, refresh, back, error_msg="Invalid Details"):
     action_row((text, lambda: save_action(action, refresh, error_msg)), ("Back", back))
+
 def action_row(*actions, pady=14):
     """Place related actions beside each other and keep the group centered."""
     row = Frame(page_content, bg=BG)
@@ -98,14 +94,17 @@ def action_row(*actions, pady=14):
         if len(action) > 2 and action[2]:
             style.update(bg="#c62828", activebackground="#8e0000")
         Button(row, text=text, command=command, **style).pack(side=LEFT, padx=6)
+
 def small_button(parent, text, command):
     style = {**ACTION_BUTTON_STYLE, "font": ("Poppins", 10, "bold"), "width": 8}
     Button(parent, text=text, command=command, **style).pack(side=LEFT, padx=4)
+
 def entry(title, show=None):
     label(title)
     field = Entry(page_content, show=show, font=("Poppins", 12), width=30)
     field.pack(pady=5)
     return field
+
 def dropdown(title, options, selected=None):
     label(title)
     variable = StringVar(value=selected or options[0])
@@ -123,30 +122,38 @@ def form_entries(fields, values=None):
     for name, value in zip(entries, values or ()):
         entries[name].insert(0, str(value))
     return entries
+
 def member_gender(member):
     gender = member[9] if len(member) > 9 else GENDERS[0]
     return gender if gender in GENDERS else GENDERS[0]
+
 def member_form(member=None):
     values = (member[1], member[2], member[3], member[4], member[7]) if member else None
     fields = form_entries([(name, None) for name in MEMBER_FIELDS], values)
     gender = member_gender(member) if member else GENDERS[0]
     goal = dropdown("Goal", GOALS, member[5] if member else GOALS[0])
     return fields, goal, dropdown("Gender", GENDERS, gender)
+
 def member_form_values(fields, goal_var, gender_var):
     values = (fields[name].get() for name in MEMBER_FIELDS)
     name, age, height, weight, password = values
     return name, int(age), float(height), float(weight), goal_var.get(), password, gender_var.get()
+
 def get_member_fitness(member_id):
-    return next((record for record in backend.load_data("fitness.dat") if record[0] == member_id), None)
+    return next(
+        (record for record in backend.load_data("fitness.dat") if record[0] == member_id), None)
+
 def member_detail_lines(member, id_label="ID"):
     details = [(id_label, member[0]), ("Name", member[1]), ("Age", member[2]),
                ("Height", f"{member[3]} cm"), ("Weight", f"{member[4]} kg"),
                ("Goal", member[5]), ("Gender", member_gender(member)),
                ("Joined", member[6]), ("Status", "Active" if member[8] else "Inactive")]
     return [f"{name}: {value}" for name, value in details]
+
 def show_lines(lines, size=12, pady=2):
     for item in lines:
         label(item, size, pady=pady)
+
 def detail_page(title, lines_func, action_text, action_func, back_func, empty_text=None):
     start_page(title)
     lines = lines_func()
@@ -156,6 +163,7 @@ def detail_page(title, lines_func, action_text, action_func, back_func, empty_te
         show_lines(lines)
     button(action_text, action_func, pady=14)
     button("Back", back_func, pady=0)
+
 def show_logo():
     top = Frame(page_content, bg=BG)
     top.pack(fill="x")
@@ -166,21 +174,24 @@ def show_logo():
         Label(top, text="FitPulse", font=("Poppins", 34, "bold"), bg=BG, fg=TEXT).pack(pady=(12, 0))
     Label(top, text="Gains, Tracked.",
           font=("Poppins", 12), bg=BG, fg=MUTED).pack(pady=(0, 10))
+
 def start_page(title):
     clear_window()
     window.unbind("<MouseWheel>")
     create_page()
     show_logo()
     label(title, 22, "bold", pady=16)
+
 def add_member(name, age, height, weight, goal, password, gender):
     member_id = backend.add_member(
-        name, age, height, weight, goal, date.today().isoformat(), password, gender
-    )
+        name, age, height, weight, goal, date.today().isoformat(), password, gender)
     backend.update_membership(member_id, "Gold", "monthly")
     backend.update_workout_plan(member_id, goal, "Medium", 3)
     return member_id
+
 def member_name_map():
     return {member[0]: member[1] for member in backend.load_data("members.dat")}
+
 def records_page(title, records, empty_text, formatter, back=None, header=None):
     start_page(title)
     if header:
@@ -191,6 +202,7 @@ def records_page(title, records, empty_text, formatter, back=None, header=None):
         for record in records:
             label(formatter(record), 13, pady=3)
     button("Back", back or admin_dashboard, pady=20)
+
 def lookup_action(get_record, on_found, not_found_msg="Not Found", error_msg="Invalid ID",
                    exceptions=(ValueError, TypeError)):
     try:
@@ -201,30 +213,34 @@ def lookup_action(get_record, on_found, not_found_msg="Not Found", error_msg="In
             messagebox.showerror("Error", not_found_msg)
     except exceptions:
         messagebox.showerror("Error", error_msg)
+
 def entity_lookup_page(title, id_label, action_text, search_func, on_found, not_found_msg, back):
     start_page(title)
     id_field = entry(id_label)
     def submit():
         lookup_action(lambda: search_func(int(id_field.get())), on_found, not_found_msg)
     action_row((action_text, submit), ("Back", back))
+
 def home_page():
     global current_admin
     current_admin = None
     start_page("Welcome to Alappuzha Gymkhana!")
-    button("Admin Login", lambda: login_page("Admin Login", "Admin ID", backend.admin_login, admin_dashboard))
-    button("User Login", lambda: login_page("User Login", "Member ID", backend.user_login, user_dashboard))
+    button("Admin Login", lambda: login_page(
+        "Admin Login", "Admin ID", backend.admin_login, admin_dashboard))
+    button("User Login", lambda: login_page(
+        "User Login", "Member ID", backend.user_login, user_dashboard))
+
 def login_page(title, id_title, login_func, success_func):
     start_page(title)
     id_field = entry(id_title)
     password_field = entry("Password", show="*")
     def login():
-        lookup_action(
-            lambda: login_func(int(id_field.get()), password_field.get()),
+        lookup_action(lambda: login_func(int(id_field.get()), password_field.get()),
             success_func, "Wrong ID or Password", "Invalid Details",
-            exceptions=(ValueError, TypeError, IndexError),
-        )
+            exceptions=(ValueError, TypeError, IndexError),)
     button("Login", login, pady=20)
     button("Back", home_page, pady=0)
+
 def menu_page(title, items, back_func=None, subtitle=None):
     start_page(title)
     if subtitle:
@@ -233,6 +249,7 @@ def menu_page(title, items, back_func=None, subtitle=None):
         button(text, command)
     if back_func:
         button("Back", back_func, pady=20)
+
 def admin_dashboard(admin=None):
     global current_admin
     if admin is not None:
@@ -240,18 +257,14 @@ def admin_dashboard(admin=None):
     subtitle = None
     if current_admin:
         subtitle = f"Logged in as: {current_admin[1]} | Position: {current_admin[2]}"
-    menu_page(
-        "Admin Dashboard",
-        [
-            ("Membership Fees", membership_page),
+    menu_page("Admin Dashboard",
+        [("Membership Fees", membership_page),
             ("Attendance Logs", attendance_page),
             ("Deletion Logs", deletion_logs_page),
             ("Manage Admins", admin_controls_page),
             ("Manage Members", manage_members_page),
-            ("Logout", home_page),
-        ],
-        subtitle=subtitle,
-    )
+            ("Logout", home_page),],subtitle=subtitle,)
+
 def membership_page():
     names = member_name_map()
     memberships = backend.load_data("membership.dat")
@@ -268,26 +281,29 @@ def membership_page():
                 f"Expires {expiry} | Visits {visits} | Status {status}")
     records_page("Membership Fees", memberships, "No membership payments found",
                  formatter, admin_dashboard, header)
+
 def attendance_page():
     names = member_name_map()
     records_page("Attendance Logs", backend.load_data("attendance.dat"), "No Attendance Logs",
-        lambda r: f"{names.get(r[0], 'Unknown')} ({r[0]}) - {r[1]} - {r[2]} - Streak {r[3] if len(r) > 3 else 1}")
+        lambda r: (
+            f"{names.get(r[0], 'Unknown')} ({r[0]}) - {r[1]} - {r[2]} - "
+            f"Streak {r[3] if len(r) > 3 else 1}"))
+
 def deletion_logs_page():
-    records_page("Deletion Logs", reversed(backend.load_data("deletion_logs.dat")), "No Deletion Logs",
-        lambda r: f"{r[4] if len(r) > 4 else 'Member'}: {r[1]} ({r[0]}) - {r[3].replace('T', ' ', 1)} - {r[2]}")
+    records_page("Deletion Logs", reversed(backend.load_data("deletion_logs.dat")),
+        "No Deletion Logs", lambda r: (
+            f"{r[4] if len(r) > 4 else 'Member'}: {r[1]} ({r[0]}) - "
+            f"{r[3].replace('T', ' ', 1)} - {r[2]}"))
+
 def manage_members_page():
-    menu_page(
-        "Manage Members",
-        [
-            ("Add Member", member_editor_page),
+    menu_page("Manage Members",
+        [("Add Member", member_editor_page),
             ("Delete Member", delete_member_page),
             ("Edit Member", lambda: entity_lookup_page(
                 "Edit Member", "Member ID", "Edit", backend.search_member_by_id,
                 member_editor_page, "Member Not Found", manage_members_page)),
-            ("Search Member", search_member_page),
-        ],
-        admin_dashboard,
-    )
+            ("Search Member", search_member_page),],admin_dashboard,)
+
 def entity_delete_page(title, id_label, search_func, delete_func, label_func,
                         default_reason, back, record=None):
     start_page(title)
@@ -307,7 +323,8 @@ def entity_delete_page(title, id_label, search_func, delete_func, label_func,
         if not target:
             messagebox.showerror("Error", f"{entity} Not Found")
             return
-        if not messagebox.askyesno("Confirm Deletion", f"Delete {label_func(target)}?\nThis cannot be undone."):
+        if not messagebox.askyesno("Confirm Deletion",
+                f"Delete {label_func(target)}?\nThis cannot be undone."):
             return
         reason = reason_field.get().strip() or default_reason
         if delete_func(target[0], reason):
@@ -316,28 +333,27 @@ def entity_delete_page(title, id_label, search_func, delete_func, label_func,
         else:
             messagebox.showerror("Error", f"{entity} Not Found")
     action_row(("Delete", remove), ("Back", back))
+
 def delete_member_page():
     entity_delete_page("Delete Member", "Member ID", backend.search_member_by_id,
                         backend.delete_member, lambda m: f"{m[1]} ({m[0]})",
                         "Deleted from admin UI", manage_members_page)
+
 def admin_controls_page():
-    menu_page(
-        "Manage Admins",
-        [
-            ("Add Admin", admin_editor_page),
+    menu_page("Manage Admins",
+        [("Add Admin", admin_editor_page),
             ("Search Admin", search_admin_page),
             ("Edit Admin", lambda: entity_lookup_page(
                 "Edit Admin", "Admin ID", "Edit", backend.search_admin_by_id,
                 admin_editor_page, "Admin Not Found", admin_controls_page)),
-            ("Delete Admin", admin_delete_form_page),
-        ],
-        admin_dashboard,
-    )
+            ("Delete Admin", admin_delete_form_page),],admin_dashboard,)
+
 def editor_page(title, build_fields, save_func, save_text, back, error_msg="Invalid Details"):
     start_page(title)
     fields = build_fields()
     save_row(save_text, lambda: save_func(fields), back, back, error_msg)
     return fields
+
 def admin_editor_page(admin=None):
     editing = admin is not None
     values = (admin[1], admin[2], admin[3]) if editing else None
@@ -352,9 +368,11 @@ def admin_editor_page(admin=None):
             return "Admin Updated"
         return f"Admin Added\nID: {backend.add_admin(name, position, password)}"
     editor_page("Edit Admin" if editing else "Add Admin",
-                lambda: form_entries([("Name", None), ("Position", None), ("Password", "*")], values),
+                lambda: form_entries(
+                    [("Name", None), ("Position", None), ("Password", "*")], values),
                 save, "Save Changes" if editing else "Save Admin", admin_controls_page,
                 "All fields are required")
+
 def result_row(parent, title_text, actions):
     row = Frame(parent, bg="white", highlightbackground="#d6dbe3", highlightthickness=1)
     row.pack(fill="x", padx=16, pady=4)
@@ -362,18 +380,20 @@ def result_row(parent, title_text, actions):
           anchor="w", width=34).pack(side=LEFT, padx=12, pady=8)
     for text, command in actions:
         small_button(row, text, command)
+
 def search_admin_page():
     def row(parent, admin):
         result_row(parent, f"{admin[1]} ({admin[0]}) - {admin[2]}", [
             ("Edit", lambda: admin_editor_page(admin)),
-            ("Delete", lambda: admin_delete_form_page(admin)),
-        ])
+            ("Delete", lambda: admin_delete_form_page(admin)),])
     search_list_page("Search Admin", "Enter Admin ID or Name", "No matching admin found",
-                      lambda: backend.load_data("admins.dat"), id_or_name_match, row, admin_controls_page)
+        lambda: backend.load_data("admins.dat"), id_or_name_match, row, admin_controls_page)
+
 def admin_delete_form_page(admin=None):
     entity_delete_page("Delete Admin", "Admin ID", backend.search_admin_by_id,
                         backend.delete_admin, lambda a: f"Admin: {a[1]} ({a[0]})",
                         "Deleted from Manage Admins", admin_controls_page, admin)
+
 def member_editor_page(member=None):
     is_editing = member is not None
     def build_fields():
@@ -383,8 +403,7 @@ def member_editor_page(member=None):
     def save(fields):
         goal_var, gender_var = fields["_goal"], fields["_gender"]
         name, age, height, weight, goal, password, gender = member_form_values(
-            fields, goal_var, gender_var
-        )
+            fields, goal_var, gender_var)
         if is_editing:
             backend.modify_member(member[0], name, age, height, weight, goal, password, gender)
             backend.update_workout_plan(member[0], goal, "Medium", 3)
@@ -393,6 +412,7 @@ def member_editor_page(member=None):
         return "Member Added\nID : " + str(member_id)
     editor_page("Edit Member" if is_editing else "Add Member", build_fields, save,
                 "Save Changes" if is_editing else "Save Member", manage_members_page)
+
 def search_list_page(title, placeholder, empty_text, load_func, matches_query, row_builder, back):
     start_page(title)
     search_field = entry(placeholder)
@@ -428,61 +448,57 @@ def search_list_page(title, placeholder, empty_text, load_func, matches_query, r
     search_field.bind("<Return>", show_matches)
     show_matches()
     button("Back", back, pady=16)
+
 def id_or_name_match(item, query):
     return not query or query in str(item[0]) or query in item[1].lower()
+
 def search_member_page():
     def row(parent, member):
         result_row(parent, f"{member[1]} ({member[0]})", [
             ("View", lambda: view_member_page(member)),
-            ("Edit", lambda: member_editor_page(member)),
-        ])
+            ("Edit", lambda: member_editor_page(member)),])
     search_list_page("Search Member", "Enter Member ID or Name", "No matching member found",
-                      lambda: backend.load_data("members.dat"), id_or_name_match, row, manage_members_page)
+        lambda: backend.load_data("members.dat"), id_or_name_match, row, manage_members_page)
+
 def view_member_page(member):
     def lines():
         details = member_detail_lines(member)
         membership = backend.get_membership_info(member[0])
         if membership:
-            details.append(
-                f"Membership: {membership[1]} {membership[2]}, Rs. {membership[3]}, paid {membership[4]}"
-            )
+            details.append(f"Membership: {membership[1]} {membership[2]}, "
+                f"Rs. {membership[3]}, paid {membership[4]}")
         return details
-    detail_page("Member Details", lines, "Edit", lambda: member_editor_page(member), search_member_page)
+    detail_page("Member Details", lines, "Edit",
+        lambda: member_editor_page(member), search_member_page)
+
 def user_dashboard(member):
     member = backend.search_member_by_id(member[0]) or member
     if backend.get_membership_status(member[0]) == "Inactive":
-        menu_page(
-            "Welcome " + member[1],
+        menu_page("Welcome " + member[1],
             [("Subscribe", lambda: change_membership_page(member)), ("Logout", home_page)],
-            subtitle="Your membership is inactive. Please subscribe to continue.",
-        )
+            subtitle="Your membership is inactive. Please subscribe to continue.",)
         return
-    menu_page(
-        "Welcome " + member[1],
-        [
-            ("Profile", lambda: user_profile_page(member)),
+    menu_page("Welcome " + member[1],
+        [("Profile", lambda: user_profile_page(member)),
             ("Membership", lambda: user_membership_page(member)),
             ("Workout & Diet", lambda: user_workout_page(member)),
-            ("Logout", home_page),
-        ],
-    )
+            ("Logout", home_page),],)
+
 def bmi_suggestion(category):
-    suggestions = {
-        "Underweight": "Eat more calories and focus on strength training.",
+    suggestions = {"Underweight": "Eat more calories and focus on strength training.",
         "Normal": "BMI is in a healthy range. Maintain your routine.",
-        "Overweight": "Add regular cardio and keep calories controlled.",
-    }
+        "Overweight": "Add regular cardio and keep calories controlled.",}
     return suggestions.get(category, "Focus on low-impact cardio and a steady calorie deficit.")
+
 def user_profile_page(member):
     member = backend.search_member_by_id(member[0]) or member
     def lines():
         bmi, category = backend.calculate_bmi(member[4], member[3])
-        return member_detail_lines(member, "Member ID") + [
-            f"BMI: {bmi} ({category})",
-            "BMI Analysis: " + bmi_suggestion(category),
-        ]
+        return member_detail_lines(member, "Member ID") + [f"BMI: {bmi} ({category})",
+            "BMI Analysis: " + bmi_suggestion(category),]
     detail_page("Profile", lines, "Update Body Stats",
                 lambda: update_body_stats_page(member), lambda: user_dashboard(member))
+
 def update_body_stats_page(member):
     start_page("Update Body Stats")
     weight_field = entry("Weight")
@@ -491,12 +507,13 @@ def update_body_stats_page(member):
     height_field.insert(0, str(member[3]))
     def do_update():
         bmi, category = backend.update_body_stats(
-            member[0], float(weight_field.get()), float(height_field.get())
-        )
+            member[0], float(weight_field.get()), float(height_field.get()))
         return f"BMI: {bmi} ({category})"
     def refresh():
         user_profile_page(backend.search_member_by_id(member[0]) or member)
-    save_row("Save", do_update, refresh, lambda: user_profile_page(member), "Invalid height or weight")
+    save_row("Save", do_update, refresh,
+        lambda: user_profile_page(member), "Invalid height or weight")
+
 def user_membership_page(member):
     start_page("Membership")
     membership = backend.get_membership_info(member[0])
@@ -519,6 +536,7 @@ def user_membership_page(member):
                         f"Last Visit: {last_visit or 'Not marked'}"], pady=3)
     action_row(("Change Plan", lambda: change_membership_page(member)),
                ("Back", lambda: user_dashboard(member)))
+
 def change_membership_page(member):
     start_page("Change Membership Plan")
     current = backend.get_membership_info(member[0])
@@ -528,39 +546,33 @@ def change_membership_page(member):
     duration_var = dropdown("Duration", DURATIONS, selected_duration)
     fee_label = label("", 16, "bold", fg="green", pady=8)
     def update_fee(*_):
-        fee_label.config(text=f"Membership Fee: Rs. {membership_fee(plan_var.get(), duration_var.get())}")
+        fee = membership_fee(plan_var.get(), duration_var.get())
+        fee_label.config(text=f"Membership Fee: Rs. {fee}")
     plan_var.trace_add("write", update_fee)
     duration_var.trace_add("write", update_fee)
     update_fee()
     def do_update():
         fee = membership_fee(plan_var.get(), duration_var.get())
-        confirmed = messagebox.askyesno(
-            "Confirm Plan Change",
+        confirmed = messagebox.askyesno("Confirm Plan Change",
             f"Change to {plan_var.get()} {duration_var.get()}?\n"
-            f"Rs. {fee} will be debited from your account.",
-        )
+            f"Rs. {fee} will be debited from your account.",)
         if not confirmed:
             return
         backend.update_membership(member[0], plan_var.get(), duration_var.get())
         return "Membership Updated"
     def cancel():
-        if not messagebox.askyesno(
-            "Cancel Plan",
-            "Cancel this membership? The subscription will become inactive.",
-        ):
+        if not messagebox.askyesno("Cancel Plan",
+            "Cancel this membership? The subscription will become inactive.",):
             return
         if backend.cancel_membership(member[0]):
             return "Membership Cancelled"
         raise ValueError("Membership not found")
-    action_row(
-        ("Save Plan", lambda: save_action(
-            do_update, lambda: user_membership_page(member), "Invalid Plan"
-        )),
+    action_row(("Save Plan", lambda: save_action(
+            do_update, lambda: user_membership_page(member), "Invalid Plan")),
         ("Cancel Plan", lambda: save_action(
-            cancel, lambda: user_membership_page(member), "Unable to cancel membership"
-        ), True),
-        ("Back", lambda: user_dashboard(member)),
-    )
+            cancel, lambda: user_membership_page(member), "Unable to cancel membership"), True),
+        ("Back", lambda: user_dashboard(member)),)
+
 def user_workout_page(member):
     def lines():
         fitness = get_member_fitness(member[0])
@@ -571,10 +583,12 @@ def user_workout_page(member):
             return None
         member_id, workout, intensity, frequency, diet_type, calorie_mode, _ = fitness[:7]
         diet = ["- " + item for item in backend.get_diet_plan(member[5], member_gender(member))]
-        return [f"Workout Plan: {workout}", f"Intensity: {intensity}", f"Frequency: {frequency} days/week",
-                f"Diet Type: {diet_type}", f"Calorie Mode: {calorie_mode}", "Diet Plan:"] + diet
+        return [f"Workout Plan: {workout}", f"Intensity: {intensity}",
+            f"Frequency: {frequency} days/week", f"Diet Type: {diet_type}",
+            f"Calorie Mode: {calorie_mode}", "Diet Plan:"] + diet
     detail_page("Workout & Diet", lines, "Change Workout",
                 lambda: change_workout_page(member), lambda: user_dashboard(member))
+
 def change_workout_page(member):
     start_page("Change Workout")
     goal_var = dropdown("Goal", GOALS, member[5])
@@ -583,11 +597,13 @@ def change_workout_page(member):
     frequency_field.insert(0, "3")
     def do_update():
         backend.modify_member(member[0], goal=goal_var.get())
-        backend.update_workout_plan(member[0], goal_var.get(), intensity_var.get(), int(frequency_field.get()))
+        backend.update_workout_plan(
+            member[0], goal_var.get(), intensity_var.get(), int(frequency_field.get()))
         return "Workout Updated"
     def refresh():
         user_workout_page(backend.search_member_by_id(member[0]) or member)
-    save_row("Save Workout", do_update, refresh, lambda: user_workout_page(member), "Invalid Workout Details")
+    save_row("Save Workout", do_update, refresh,
+        lambda: user_workout_page(member), "Invalid Workout Details")
 initialize_window()
 create_files()
 home_page()
