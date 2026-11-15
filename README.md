@@ -1,14 +1,7 @@
 <div align="center">
-<pre>
-███████╗██╗████████╗██████╗ ██╗   ██╗██╗     ███████╗███████╗
-██╔════╝██║╚══██╔══╝██╔══██╗██║   ██║██║     ██╔════╝██╔════╝
-█████╗  ██║   ██║   ██████╔╝██║   ██║██║     ███████╗█████╗
-██╔══╝  ██║   ██║   ██╔═══╝ ██║   ██║██║     ╚════██║██╔══╝
-██║     ██║   ██║   ██║     ╚██████╔╝███████╗███████║███████╗
-╚═╝     ╚═╝   ╚═╝   ╚═╝      ╚═════╝ ╚══════╝╚══════╝╚══════╝
-</pre>
-<p><sub>Gains, Tracked.</sub></p>
-<p>A gym management desktop app made with Python and Tkinter.</p>
+  <img src="fitpulse_logo_white.svg" alt="FitPulse logo" width="440">
+  <p><sub>Gains, Tracked.</sub></p>
+  <p>A gym management desktop app made with Python and Tkinter.</p>
 </div>
 
 ---
@@ -55,6 +48,7 @@ When a member logs in, FitPulse checks the membership expiry date and records th
 FitPulse/
 ├── FitPulseMain.py
 ├── FitPulseBackend.py
+├── fitpulse_logo.png
 └── README.md
 ```
 
