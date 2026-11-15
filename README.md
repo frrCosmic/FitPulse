@@ -1,7 +1,14 @@
 <div align="center">
-  <h1>FITPULSE</h1>
-  <p><sub>Gains, Tracked.</sub></p>
-  <p>A gym management desktop app made with Python and Tkinter.</p>
+<pre>
+███████╗██╗████████╗██████╗ ██╗   ██╗██╗     ███████╗███████╗
+██╔════╝██║╚══██╔══╝██╔══██╗██║   ██║██║     ██╔════╝██╔════╝
+█████╗  ██║   ██║   ██████╔╝██║   ██║██║     ███████╗█████╗
+██╔══╝  ██║   ██║   ██╔═══╝ ██║   ██║██║     ╚════██║██╔══╝
+██║     ██║   ██║   ██║     ╚██████╔╝███████╗███████║███████╗
+╚═╝     ╚═╝   ╚═╝   ╚═╝      ╚═════╝ ╚══════╝╚══════╝╚══════╝
+</pre>
+<p><sub>Gains, Tracked.</sub></p>
+<p>A gym management desktop app made with Python and Tkinter.</p>
 </div>
 
 ---
@@ -79,13 +86,13 @@ No separate database setup is required.
 On the first run, the app creates a default admin account and sample member accounts if the relevant data files are empty.
 
 | Account | ID | Password |
-| --- | --- | --- |
+| --- | ---: | --- |
 | Admin | `1001` | `admin123` |
 
 Sample member logins are also created:
 
 | Member | ID | Password |
-| --- | --- | --- |
+| --- | ---: | --- |
 | Arjun | `101001` | `arjun123` |
 | Rahul | `101002` | `rahul123` |
 | Neeraj | `101003` | `neeraj123` |
